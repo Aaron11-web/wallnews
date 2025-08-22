@@ -30,34 +30,43 @@
         .social-platform-reddit { border-left: 4px solid #ff4500; }
         .social-platform-facebook { border-left: 4px solid #1877f2; }
         .social-platform-tiktok { border-left: 4px solid #000000; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; justify-content: center; align-items: center; font-family: Arial, sans-serif; text-align: center; z-index: 9999; }
-        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; margin-top: 10px; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; }
+        .fallback-loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 18px; text-align: center; }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading-screen">
-        <div>
-            <h2 style="font-size: 2rem; margin-bottom: 10px;">🌊 WallNews</h2>
-            <p>Real-Time News & Social Media Aggregator</p>
-            <div class="spinner"></div>
+    <div id="root">
+        <div class="fallback-loading">
+            <div>
+                <h2>🌊 WallNews Loading...</h2>
+                <p>Real-Time News & Social Media Aggregator</p>
+                <div style="margin-top: 20px;"><div class="spinner"></div></div>
+            </div>
         </div>
     </div>
-    
-    <div id="root"></div>
 
     <script type="text/babel">
-        document.addEventListener('DOMContentLoaded', function() {
+        // Error handling and fallback wrapper
+        (function() {
             try {
                 const { useState, useEffect, useContext, createContext, useMemo } = React;
                 
-                setTimeout(() => {
-                    const loading = document.getElementById('loading');
-                    if (loading) loading.style.display = 'none';
-                }, 500);
-                
+                // Simple Icon component with emoji fallbacks
+                const Icon = ({ name, className = "w-4 h-4" }) => {
+                    const icons = {
+                        Search: '🔍', TrendingUp: '📈', RefreshCw: '🔄', ExternalLink: '🔗',
+                        Share2: '📤', Heart: '❤️', Eye: '👁️', Clock: '⏰', ChevronDown: '⬇️',
+                        ChevronUp: '⬆️', Twitter: '🐦', Linkedin: '💼', Instagram: '📷',
+                        Facebook: '📘', Play: '▶️', MessageSquare: '💬', Globe: '🌐'
+                    };
+                    return React.createElement('span', { 
+                        className: `inline-block ${className}`,
+                        style: { fontSize: '1em' }
+                    }, icons[name] || '•');
+                };
+
+                // Mock Data
                 const mockNews = [
                     {
                         id: 'news-1', title: 'AI Revolution in Climate Technology',
@@ -75,17 +84,12 @@
                         id: 'news-2', title: 'Renewable Energy Breakthrough',
                         description: 'Scientists develop revolutionary solar panel technology with 50% efficiency rate.',
                         category: 'Environment', publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), trending: true,
-                        sources: [{ id: 'nature', name: 'Nature', reliability: 0.99 }, { id: 'sciencedaily', name: 'Science Daily', reliability: 0.85 }],
+                        sources: [
+                            { id: 'nature', name: 'Nature', reliability: 0.99 },
+                            { id: 'sciencedaily', name: 'Science Daily', reliability: 0.85 }
+                        ],
                         imageUrl: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop',
                         views: 8900, likes: 567, shares: 123
-                    },
-                    {
-                        id: 'news-3', title: 'Space Exploration Milestone',
-                        description: 'New Mars mission discovers potential signs of ancient microbial life.',
-                        category: 'Science', publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), trending: false,
-                        sources: [{ id: 'nasa', name: 'NASA', reliability: 0.99 }, { id: 'spacenews', name: 'SpaceNews', reliability: 0.92 }],
-                        imageUrl: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=300&fit=crop',
-                        views: 15600, likes: 1234, shares: 456
                     }
                 ];
 
@@ -95,7 +99,8 @@
                         author: '@TechGuru', authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
                         content: 'The AI revolution is here! Just witnessed amazing demos of climate prediction models. #AI #ClimateChange',
                         timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-                        likes: 234, shares: 45, comments: 12, verified: true, isLive: false, hashtags: ['#AI', '#ClimateChange']
+                        likes: 234, shares: 45, comments: 12, verified: true, isLive: false,
+                        hashtags: ['#AI', '#ClimateChange']
                     },
                     {
                         id: 'social-2', platform: 'twitter', platformName: 'Twitter',
@@ -103,10 +108,12 @@
                         content: '🔴 LIVE: Mars rover discovers potential signs of microbial life! #Mars #Space #LiveUpdate',
                         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
                         likes: 2340, shares: 456, comments: 189, verified: true, isLive: true,
-                        hashtags: ['#Mars', '#Space', '#LiveUpdate'], mediaUrl: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=300&fit=crop'
+                        hashtags: ['#Mars', '#Space', '#LiveUpdate'],
+                        mediaUrl: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=300&fit=crop'
                     }
                 ];
 
+                // Context
                 const AppContext = createContext();
 
                 function AppProvider({ children }) {
@@ -152,13 +159,18 @@
 
                     const refreshContent = () => {
                         setLoading(true);
-                        setTimeout(() => { setLastRefresh(new Date()); setLoading(false); }, 1000);
+                        setTimeout(() => {
+                            setLastRefresh(new Date());
+                            setLoading(false);
+                        }, 1000);
                     };
 
                     return React.createElement(AppContext.Provider, {
-                        value: { newsArticles: filteredNews, socialPosts: filteredSocialPosts, selectedCategory, setSelectedCategory,
+                        value: {
+                            newsArticles: filteredNews, socialPosts: filteredSocialPosts, selectedCategory, setSelectedCategory,
                             selectedPlatforms, setSelectedPlatforms, searchQuery, setSearchQuery, loading, refreshContent,
-                            lastRefresh, categories, platforms, activeTab, setActiveTab }
+                            lastRefresh, categories, platforms, activeTab, setActiveTab
+                        }
                     }, children);
                 }
 
@@ -174,7 +186,7 @@
                                 ),
                                 React.createElement('div', { className: "flex items-center space-x-4" },
                                     React.createElement('div', { className: "flex items-center space-x-2" },
-                                        React.createElement('span', { className: "text-lg" }, '🔍'),
+                                        React.createElement(Icon, { name: 'Search' }),
                                         React.createElement('input', {
                                             type: "text", value: searchQuery, onChange: (e) => setSearchQuery(e.target.value),
                                             placeholder: "Search news and social media...", className: "px-4 py-2 rounded-lg text-gray-900 w-64 focus:outline-none"
@@ -182,7 +194,7 @@
                                     ),
                                     React.createElement('button', {
                                         onClick: refreshContent, disabled: loading, className: "p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30"
-                                    }, React.createElement('span', { className: loading ? "animate-spin text-lg" : "text-lg" }, '🔄')),
+                                    }, React.createElement(Icon, { name: 'RefreshCw' })),
                                     React.createElement('div', { className: "text-xs opacity-75" }, `Last update: ${lastRefresh.toLocaleTimeString()}`)
                                 )
                             )
@@ -252,7 +264,7 @@
                                     onError: (e) => { e.target.src = 'https://via.placeholder.com/400x300/e2e8f0/64748b?text=News+Image'; }
                                 }),
                                 article.trending && React.createElement('div', { className: "absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1" },
-                                    React.createElement('span', null, '📈'), 'Trending'
+                                    React.createElement(Icon, { name: 'TrendingUp', className: 'w-3 h-3' }), 'Trending'
                                 ),
                                 React.createElement('div', { className: "absolute top-3 right-3 bg-black bg-opacity-50 text-white px-2 py-1 rounded-full text-xs" }, `${article.sources.length} sources`)
                             ),
@@ -260,7 +272,7 @@
                                 React.createElement('div', { className: "flex items-center justify-between mb-3" },
                                     React.createElement('span', { className: "text-sm text-blue-600 font-semibold" }, article.category),
                                     React.createElement('span', { className: "text-xs text-gray-500 flex items-center gap-1" },
-                                        React.createElement('span', null, '⏰'), formatTime(article.publishedAt)
+                                        React.createElement(Icon, { name: 'Clock', className: 'w-3 h-3' }), formatTime(article.publishedAt)
                                     )
                                 ),
                                 React.createElement('h3', { className: "text-lg font-bold text-gray-900 mb-2" }, article.title),
@@ -270,7 +282,9 @@
                                         React.createElement('h4', { className: "text-sm font-semibold text-gray-800" }, 'Multiple Sources'),
                                         React.createElement('button', {
                                             onClick: () => setShowAllSources(!showAllSources), className: "text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                        }, showAllSources ? 'Show Less' : 'Show All', React.createElement('span', null, showAllSources ? '⬆️' : '⬇️'))
+                                        }, showAllSources ? 'Show Less' : 'Show All',
+                                            React.createElement(Icon, { name: showAllSources ? 'ChevronUp' : 'ChevronDown', className: 'w-3 h-3' })
+                                        )
                                     ),
                                     React.createElement('div', { className: "space-y-2" },
                                         (showAllSources ? article.sources : article.sources.slice(0, 2)).map((source) => 
@@ -278,16 +292,22 @@
                                                 React.createElement('span', { className: "text-xs font-medium" }, source.name),
                                                 React.createElement('div', { className: "flex items-center gap-2" },
                                                     React.createElement('span', { className: "text-xs text-green-600" }, `${Math.round(source.reliability * 100)}%`),
-                                                    React.createElement('span', null, '🔗')
+                                                    React.createElement(Icon, { name: 'ExternalLink', className: 'w-3 h-3 text-gray-400' })
                                                 )
                                             )
                                         )
                                     )
                                 ),
                                 React.createElement('div', { className: "flex items-center justify-between text-xs text-gray-500" },
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '👁️'), article.views?.toLocaleString()),
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '❤️'), article.likes),
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '📤'), article.shares)
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'Eye', className: 'w-3 h-3' }), article.views?.toLocaleString()
+                                    ),
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'Heart', className: 'w-3 h-3' }), article.likes
+                                    ),
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'Share2', className: 'w-3 h-3' }), article.shares
+                                    )
                                 )
                             )
                         )
@@ -296,16 +316,18 @@
 
                 function SocialCard({ post }) {
                     const formatTime = (timestamp) => {
-                        const now = new Date(); const postTime = new Date(timestamp); const diffMinutes = Math.floor((now - postTime) / (1000 * 60));
-                        if (diffMinutes < 1) return 'Just now'; if (diffMinutes < 60) return `${diffMinutes}m ago`;
-                        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`; return `${Math.floor(diffMinutes / 1440)}d ago`;
+                        const now = new Date();
+                        const postTime = new Date(timestamp);
+                        const diffMinutes = Math.floor((now - postTime) / (1000 * 60));
+                        if (diffMinutes < 1) return 'Just now';
+                        if (diffMinutes < 60) return `${diffMinutes}m ago`;
+                        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
+                        return `${Math.floor(diffMinutes / 1440)}d ago`;
                     };
 
                     const getPlatformIcon = () => {
-                        switch(post.platform) {
-                            case 'twitter': return '🐦'; case 'instagram': return '📷'; case 'linkedin': return '💼';
-                            case 'facebook': return '📘'; case 'tiktok': return '▶️'; case 'reddit': return '💬'; default: return '🌐';
-                        }
+                        const iconMap = { twitter: 'Twitter', instagram: 'Instagram', linkedin: 'Linkedin', facebook: 'Facebook', tiktok: 'Play', reddit: 'MessageSquare' };
+                        return React.createElement(Icon, { name: iconMap[post.platform] || 'Globe', className: 'w-4 h-4' });
                     };
 
                     return React.createElement('div', { className: `bg-white rounded-xl shadow-lg overflow-hidden social-platform-${post.platform} mb-4` },
@@ -325,8 +347,7 @@
                                             post.isLive && React.createElement('span', { className: "live-indicator px-2 py-1 text-white text-xs rounded-full font-bold" }, 'LIVE')
                                         ),
                                         React.createElement('div', { className: "flex items-center gap-2 text-sm text-gray-500" },
-                                            React.createElement('span', null, getPlatformIcon()), React.createElement('span', null, post.platformName),
-                                            React.createElement('span', null, '•'), React.createElement('span', null, formatTime(post.timestamp))
+                                            getPlatformIcon(), React.createElement('span', null, post.platformName), React.createElement('span', null, '•'), React.createElement('span', null, formatTime(post.timestamp))
                                         )
                                     )
                                 )
@@ -338,9 +359,15 @@
                             }),
                             React.createElement('div', { className: "flex items-center justify-between text-sm text-gray-500" },
                                 React.createElement('div', { className: "flex items-center space-x-4" },
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '❤️'), post.likes?.toLocaleString()),
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '💬'), post.comments),
-                                    React.createElement('span', { className: "flex items-center gap-1" }, React.createElement('span', null, '📤'), post.shares)
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'Heart', className: 'w-4 h-4' }), post.likes?.toLocaleString()
+                                    ),
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'MessageSquare', className: 'w-4 h-4' }), post.comments
+                                    ),
+                                    React.createElement('span', { className: "flex items-center gap-1" },
+                                        React.createElement(Icon, { name: 'Share2', className: 'w-4 h-4' }), post.shares
+                                    )
                                 ),
                                 React.createElement('div', { className: "flex flex-wrap gap-1" },
                                     post.hashtags.slice(0, 3).map((hashtag, i) => 
@@ -364,12 +391,20 @@
                     return React.createElement('main', { className: "max-w-7xl mx-auto px-4 py-8" },
                         activeTab === 'news' ? (
                             newsArticles.length === 0 ? 
-                                React.createElement('div', { className: "text-center py-12" }, React.createElement('p', { className: "text-gray-500" }, 'No news articles found.')) :
-                                React.createElement('div', { className: "masonry-grid" }, newsArticles.map(article => React.createElement(NewsCard, { key: article.id, article })))
+                                React.createElement('div', { className: "text-center py-12" },
+                                    React.createElement('p', { className: "text-gray-500" }, 'No news articles found.')
+                                ) :
+                                React.createElement('div', { className: "masonry-grid" },
+                                    newsArticles.map(article => React.createElement(NewsCard, { key: article.id, article }))
+                                )
                         ) : (
                             socialPosts.length === 0 ? 
-                                React.createElement('div', { className: "text-center py-12" }, React.createElement('p', { className: "text-gray-500" }, 'No social media posts found.')) :
-                                React.createElement('div', { className: "max-w-2xl mx-auto" }, socialPosts.map(post => React.createElement(SocialCard, { key: post.id, post })))
+                                React.createElement('div', { className: "text-center py-12" },
+                                    React.createElement('p', { className: "text-gray-500" }, 'No social media posts found.')
+                                ) :
+                                React.createElement('div', { className: "max-w-2xl mx-auto" },
+                                    socialPosts.map(post => React.createElement(SocialCard, { key: post.id, post }))
+                                )
                         )
                     );
                 }
@@ -377,7 +412,9 @@
                 function App() {
                     return React.createElement(AppProvider, null,
                         React.createElement('div', { className: "min-h-screen bg-gray-50" },
-                            React.createElement(Header), React.createElement(Navigation), React.createElement(MainContent),
+                            React.createElement(Header),
+                            React.createElement(Navigation),
+                            React.createElement(MainContent),
                             React.createElement('footer', { className: "bg-white border-t mt-12 py-8" },
                                 React.createElement('div', { className: "max-w-7xl mx-auto px-4 text-center" },
                                     React.createElement('p', { className: "text-gray-600" }, '© 2024 WallNews - Real-Time News & Social Media Aggregator')
@@ -387,6 +424,7 @@
                     );
                 }
 
+                // Render the app
                 ReactDOM.render(React.createElement(App), document.getElementById('root'));
 
             } catch (error) {
@@ -401,7 +439,7 @@
                     </div>
                 `;
             }
-        });
+        })();
     </script>
 </body>
 </html>
