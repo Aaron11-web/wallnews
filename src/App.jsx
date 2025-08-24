@@ -23,7 +23,7 @@ function App() {
     apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
     dangerouslyAllowBrowser: true // For local dev; use backend in prod
   });
-  const newsApiKey = '00146067546b42ae82be14857f12b5ea'; // Nouvelle clé API
+  const newsApiKey = import.meta.env.VITE_NEWS_API_KEY; // Ajoute ta clé TheNewsAPI dans .env comme VITE_NEWS_API_KEY=ta_cle
 
   // LocalStorage helpers
   const CACHE_EXPIRATION = 60 * 60 * 1000; // 1 heure en ms
@@ -50,37 +50,46 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const countries = ['us', 'fr', 'gb'];
-      const categories = ['science', 'science', 'general', 'health', 'business', 'general']; // Map: environment/science pour climate/space, general pour politics/big topic, health/tech, business pour crypto
+      const languages = 'en,fr'; // Comma-separated pour multilingue si besoin
       const categoryLabels = ['Climate Change', 'Space Exploration', 'Politique Internationale', 'Health Technology', 'Cryptocurrency', 'Biggest Topic of the Month'];
-      const articles = [];
+      const searchQuery = categoryLabels.map(label => `"${label}"`).join(' OR '); // Recherche large avec OR pour minimiser les appels
+      let articles = [];
       
-      for (let i = 0; i < categories.length; i++) {
-        const category = categories[i];
-        const label = categoryLabels[i];
-        let found = false;
-        for (const country of countries) {
-          const response = await axios.get(`https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&apiKey=${newsApiKey}`);
-          let selectedArticle = response.data.articles[0]; // Fallback to first if no match
-          const filtered = response.data.articles.filter(a => a.title && a.title.toLowerCase().includes(label.toLowerCase().split(' ')[0]));
-          if (filtered.length > 0) {
-            selectedArticle = filtered[0];
-          }
-          if (selectedArticle) {
-            articles.push({...selectedArticle, customCategory: label});
-            found = true;
-          }
+      // Single broad request to cover all topics
+      const response = await axios.get(`https://api.thenewsapi.com/v1/news/all`, {
+        params: {
+          api_token: newsApiKey,
+          language: languages,
+          search: searchQuery,
+          limit: 6 // Limite à 6 articles (free tier max 3 par req, mais on ajuste si besoin)
         }
-        if (!found && articles.length < 6) {
-          // Additional fallback if no article for category: use general search
-          const fallbackResponse = await axios.get(`https://newsapi.org/v2/everything?q=${encodeURIComponent(label)}&apiKey=${newsApiKey}`);
-          if (fallbackResponse.data.articles.length > 0) {
-            articles.push({...fallbackResponse.data.articles[0], customCategory: label});
+      });
+      const allArticles = response.data.data || []; // Structure typique : { data: [articles], meta: {} }
+      
+      // Filter for one article per custom label
+      for (let i = 0; i < categoryLabels.length; i++) {
+        const label = categoryLabels[i];
+        let selectedArticle = allArticles.find(a => a.title && a.title.toLowerCase().includes(label.toLowerCase().split(' ')[0])) || allArticles[i]; // Fallback to any
+        if (selectedArticle) {
+          articles.push({...selectedArticle, customCategory: label, url: selectedArticle.url, imageUrl: selectedArticle.image_url || ''});
+        } else {
+          // Fallback only if no match: individual search per label (minimise avec condition)
+          const fallbackResponse = await axios.get(`https://api.thenewsapi.com/v1/news/all`, {
+            params: {
+              api_token: newsApiKey,
+              search: `"${label}"`,
+              language: languages,
+              limit: 1
+            }
+          });
+          if (fallbackResponse.data.data.length > 0) {
+            const fbArticle = fallbackResponse.data.data[0];
+            articles.push({...fbArticle, customCategory: label, url: fbArticle.url, imageUrl: fbArticle.image_url || ''});
           }
         }
       }
       
-      const uniqueArticles = articles.slice(0, 6); // Au moins 1 par catégorie, jusqu'à 6
+      const uniqueArticles = articles.slice(0, 6);
 
       const prompt = `
         Analyse ces articles de news diversifiés (un par catégorie au moins) : ${JSON.stringify(uniqueArticles)}.
@@ -98,14 +107,13 @@ function App() {
         Répondez UNIQUEMENT avec l'objet JSON valide. Commencez par { et terminez par }. N'incluez aucun autre texte, explication ou introduction.
       `;
       
-      const response = await anthropic.messages.create({
+      const aiResponse = await anthropic.messages.create({
         model: 'claude-3-5-haiku-latest',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       });
       
-      let resultText = response.content[0].text;
-      // Extraction JSON si texte parasite
+      let resultText = aiResponse.content[0].text;
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (jsonMatch) resultText = jsonMatch[0];
       
@@ -139,8 +147,14 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`https://newsapi.org/v2/everything?q=trending+social+media&apiKey=${newsApiKey}`);
-      const topics = response.data.articles.slice(0, 5);
+      const response = await axios.get(`https://api.thenewsapi.com/v1/news/all`, {
+        params: {
+          api_token: newsApiKey,
+          search: 'trending social media',
+          limit: 5
+        }
+      });
+      const topics = response.data.data || []; // Structure { data: [articles] }
 
       const prompt = `
         Analyse ces headlines de réseaux sociaux : ${JSON.stringify(topics)}.
